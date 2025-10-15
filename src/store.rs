@@ -10,12 +10,17 @@ struct Record {
     end: Option<DateTime<Local>>,
 }
 
-#[derive(Debug, Serialize, Deserialize, Default)]
+#[derive(Debug, Serialize, Deserialize)]
 pub struct Store {
     records: Vec<Record>,
+    is_running: bool,
 }
 
 impl Store {
+    pub fn get_is_running(&self) -> bool {
+        self.is_running
+    }
+
     fn path() -> Option<PathBuf> {
         if let Some(proj) = ProjectDirs::from("com", "you", "_9two5") {
             let dir = proj.data_local_dir();
@@ -50,6 +55,7 @@ impl Store {
         if last.end.is_none() {
             last.end = Some(Local::now());
             self.persist();
+            self.is_running = false;
             return;
         }
 
@@ -57,6 +63,7 @@ impl Store {
             start: Local::now(),
             end: None,
         });
+        self.is_running = true;
         self.persist();
     }
 
@@ -97,5 +104,19 @@ impl Store {
         let mut out: Vec<_> = sums.into_iter().collect();
         out.reverse(); // oldest -> newest
         out
+    }
+}
+
+impl Default for Store {
+    fn default() -> Self {
+        Store {
+            records: vec![
+                Record {
+                    start: Local::now(),
+                    end: None,
+                }
+            ],
+            is_running: true,
+        }
     }
 }

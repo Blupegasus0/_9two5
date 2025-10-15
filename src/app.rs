@@ -8,7 +8,7 @@ pub struct App {
     ui_shown: Visible,
 }
 
-#[derive(Debug, Serialize, Deserialize, Default)]
+#[derive(Debug, Serialize, Deserialize)]
 struct Visible {
     timer: bool,
     menu: bool,
@@ -39,7 +39,17 @@ impl eframe::App for App {
                 let available = ui.available_size();
                 let text_size: f32 = available.x * 0.25;
 
-                let timer_button = egui::Button::new(egui::RichText::new(&timer_counter).size(text_size))
+                let color = if self.store.get_is_running() {
+                    egui::Color32::from_rgb(0, 200, 0) // green
+                } else {
+                    egui::Color32::from_rgb(200, 0, 0) // red
+                };
+
+                let timer_button = egui::Button::new(
+                    egui::RichText::new(&timer_counter)
+                        .size(text_size)
+                        .color(color)
+                )
                     .fill(egui::Color32::TRANSPARENT) // no background
                     .frame(false); // no borders or shadows
                 let timer_button = ui.add_sized(available, timer_button);
