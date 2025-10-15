@@ -1,4 +1,4 @@
-use chrono::{DateTime, Local, NaiveDate};
+use chrono::{DateTime, Datelike, Local};
 use directories::ProjectDirs;
 use serde::{Deserialize, Serialize};
 use std::fs;
@@ -44,11 +44,15 @@ impl Store {
         }
     }
 
-    pub fn start(&mut self) {
-        // if already running, do nothing
-        if self.records.last().map(|r| r.end.is_none()).unwrap_or(false) {
+    pub fn toggle(&mut self) {
+        // if already running, stop
+        let last = self.records.last_mut().unwrap();
+        if last.end.is_none() {
+            last.end = Some(Local::now());
+            self.persist();
             return;
         }
+
         self.records.push(Record {
             start: Local::now(),
             end: None,
@@ -56,26 +60,17 @@ impl Store {
         self.persist();
     }
 
-    pub fn stop(&mut self) {
-        if let Some(last) = self.records.last_mut() {
-            if last.end.is_none() {
-                last.end = Some(Local::now());
-                self.persist();
-            }
-        }
-    }
-
     pub fn reset_today(&mut self) {
-        let today = Local::now().naive_local();
-        self.records.retain(|r| r.start.date_naive() != today);
+        let today = Local::now();
+        self.records.retain(|r| r.start != today);
         self.persist();
     }
 
     pub fn total_today_seconds(&self) -> i64 {
-        let today = Local::now();
+        let today = Local::now().day();
         self.records
             .iter()
-            .filter(|r| r.start.date_naive() == today)
+            .filter(|r| r.start.day() == today)
             .map(|r| {
                 let end = r.end.unwrap_or_else(|| Local::now());
                 let secs = (end - r.start).num_seconds();
@@ -84,14 +79,14 @@ impl Store {
             .sum()
     }
 
-    pub fn totals_for_last_7_days(&self) -> Vec<(NaiveDate, i64)> {
+    pub fn totals_for_last_7_days(&self) -> Vec<(DateTime<Local>, i64)> {
         let mut sums = std::collections::BTreeMap::new();
         let today = Local::now();
         for d in 0..7 {
             sums.insert(today - chrono::Duration::days(d), 0i64);
         }
         for r in &self.records {
-            let start_date = r.start.date_naive();
+            let start_date = r.start;
             let end = r.end.unwrap_or_else(|| Local::now());
             let secs = (end - r.start).num_seconds();
             // only count if within the last 7 days by start date
