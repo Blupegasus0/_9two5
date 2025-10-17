@@ -102,9 +102,15 @@ impl Store {
     pub fn stop(&mut self) {
         self.timer_state = TimerState::Done;
 
-        let last = self.records.last_mut().unwrap();
-        if last.end.is_none() {
-            last.end = Some(Local::now());
+        let last_work = self.records.last_mut().unwrap();
+        if last_work.end.is_none() {
+            last_work.end = Some(Local::now());
+            self.persist();
+        };
+
+        let last_break = self.records.last_mut().unwrap();
+        if last_break.end.is_none() {
+            last_break.end = Some(Local::now());
             self.persist();
         };
     }
@@ -173,7 +179,7 @@ impl Default for Store {
             break_records: vec![
                 Record {
                     start: Local::now(),
-                    end: None,
+                    end: Some(Local::now()),
                 }
             ],
             timer_state: TimerState::Work,
