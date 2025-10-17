@@ -39,10 +39,10 @@ impl eframe::App for App {
                 let available = ui.available_size();
                 let text_size: f32 = available.x * 0.25;
 
-                let color = if self.store.get_is_running() {
-                    egui::Color32::from_rgb(0, 200, 0) // green
-                } else {
-                    egui::Color32::from_rgb(200, 0, 0) // red
+                let color = match self.store.get_timer_state() {
+                    TimerState::Work => egui::Color32::from_rgb(0, 200, 0), // green
+                    TimerState::Break => egui::Color32::from_rgb(200, 200, 0), // green
+                    TimerState::Done => egui::Color32::from_rgb(200, 0, 0), // red
                 };
 
                 let timer_button = egui::Button::new(

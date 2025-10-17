@@ -13,12 +13,19 @@ struct Record {
 #[derive(Debug, Serialize, Deserialize)]
 pub struct Store {
     records: Vec<Record>,
-    is_running: bool,
+    timer_state: TimerState,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub enum TimerState {
+    Work,
+    Break,
+    Done,
 }
 
 impl Store {
-    pub fn get_is_running(&self) -> bool {
-        self.is_running
+    pub fn get_timer_state(&self) -> &TimerState {
+        &self.timer_state
     }
 
     fn path() -> Option<PathBuf> {
@@ -55,7 +62,7 @@ impl Store {
         if last.end.is_none() {
             last.end = Some(Local::now());
             self.persist();
-            self.is_running = false;
+            self.timer_state = TimerState::Break;
             return;
         }
 
@@ -63,7 +70,7 @@ impl Store {
             start: Local::now(),
             end: None,
         });
-        self.is_running = true;
+        self.timer_state = TimerState::Work;
         self.persist();
     }
 
@@ -116,7 +123,7 @@ impl Default for Store {
                     end: None,
                 }
             ],
-            is_running: true,
+            timer_state: TimerState::Work,
         }
     }
 }
