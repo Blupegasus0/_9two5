@@ -57,21 +57,42 @@ impl Store {
     }
 
     pub fn toggle(&mut self) {
-        // if already running, stop
+        // if already running, break
+        match self.get_timer_state() {
+            TimerState::Work => {
+                let last = self.records.last_mut().unwrap();
+
+                self.timer_state = TimerState::Break;
+                last.end = Some(Local::now());
+                self.persist();
+            },
+            TimerState::Break => {
+                // stop break timer as well.
+                self.timer_state = TimerState::Work;
+                self.records.push(Record {
+                    start: Local::now(),
+                    end: None,
+                });
+            },
+            TimerState::Done => {
+                self.timer_state = TimerState::Work;
+                self.records.push(Record {
+                    start: Local::now(),
+                    end: None,
+                });
+            }
+        }
+        self.persist();
+    }
+
+    pub fn stop(&mut self) {
+        self.timer_state = TimerState::Done;
+
         let last = self.records.last_mut().unwrap();
         if last.end.is_none() {
             last.end = Some(Local::now());
             self.persist();
-            self.timer_state = TimerState::Break;
-            return;
-        }
-
-        self.records.push(Record {
-            start: Local::now(),
-            end: None,
-        });
-        self.timer_state = TimerState::Work;
-        self.persist();
+        };
     }
 
     pub fn reset_today(&mut self) {

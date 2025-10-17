@@ -57,6 +57,9 @@ impl eframe::App for App {
                 if timer_button.clicked() {
                     self.store.toggle();
                 }
+                if timer_button.double_clicked() {
+                    self.store.stop();
+                }
             }
 
             if self.ui_shown.menu {
