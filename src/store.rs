@@ -109,7 +109,7 @@ impl Store {
             can_persist = true;
         };
 
-        let last_break = self.records.last_mut().unwrap();
+        let last_break = self.break_records.last_mut().unwrap();
         if last_break.end.is_none() {
             last_break.end = Some(Local::now());
             can_persist = true;
