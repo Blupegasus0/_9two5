@@ -29,7 +29,12 @@ impl eframe::App for App {
 
     fn update(&mut self, ctx: &egui::Context, _frame: &mut eframe::Frame) {
         egui::CentralPanel::default().show(ctx, |ui| {
-            let secs = self.store.total_today_seconds();
+            let timer_state = self.store.get_timer_state();
+            let secs = match timer_state {
+                TimerState::Break => self.store.get_total_break_seconds(),
+                _ => self.store.total_today_seconds(),
+
+            };
             let hours = secs / 3600;
             let minutes = (secs % 3600) / 60;
             let seconds = secs % 60;
@@ -39,10 +44,10 @@ impl eframe::App for App {
                 let available = ui.available_size();
                 let text_size: f32 = available.x * 0.25;
 
-                let color = if self.store.get_is_running() {
-                    egui::Color32::from_rgb(0, 200, 0) // green
-                } else {
-                    egui::Color32::from_rgb(200, 0, 0) // red
+                let color = match self.store.get_timer_state() {
+                    TimerState::Work => egui::Color32::from_rgb(0, 200, 0), // green
+                    TimerState::Break => egui::Color32::from_rgb(200, 200, 0), // green
+                    TimerState::Done => egui::Color32::from_rgb(200, 0, 0), // red
                 };
 
                 let timer_button = egui::Button::new(
@@ -56,6 +61,9 @@ impl eframe::App for App {
 
                 if timer_button.clicked() {
                     self.store.toggle();
+                }
+                if timer_button.double_clicked() {
+                    self.store.stop();
                 }
             }
 

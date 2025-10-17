@@ -13,12 +13,20 @@ struct Record {
 #[derive(Debug, Serialize, Deserialize)]
 pub struct Store {
     records: Vec<Record>,
-    is_running: bool,
+    break_records: Vec<Record>,
+    timer_state: TimerState,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub enum TimerState {
+    Work,
+    Break,
+    Done,
 }
 
 impl Store {
-    pub fn get_is_running(&self) -> bool {
-        self.is_running
+    pub fn get_timer_state(&self) -> &TimerState {
+        &self.timer_state
     }
 
     fn path() -> Option<PathBuf> {
@@ -50,21 +58,66 @@ impl Store {
     }
 
     pub fn toggle(&mut self) {
-        // if already running, stop
-        let last = self.records.last_mut().unwrap();
-        if last.end.is_none() {
-            last.end = Some(Local::now());
-            self.persist();
-            self.is_running = false;
-            return;
-        }
+        // if already running, break
+        match self.get_timer_state() {
+            TimerState::Work => {
+                // timer work stop
+                let last = self.records.last_mut().unwrap();
+                last.end = Some(Local::now());
 
-        self.records.push(Record {
-            start: Local::now(),
-            end: None,
-        });
-        self.is_running = true;
+                // timer break start
+                self.break_records.push(Record {
+                    start: Local::now(),
+                    end: None,
+                });
+
+                self.timer_state = TimerState::Break;
+            },
+            TimerState::Break => {
+                // timer work start
+                self.records.push(Record {
+                    start: Local::now(),
+                    end: None,
+                });
+
+                // timer break stop
+                let last = self.break_records.last_mut().unwrap();
+                last.end = Some(Local::now());
+
+                self.timer_state = TimerState::Work;
+            },
+            TimerState::Done => {
+                // timer work start
+                self.records.push(Record {
+                    start: Local::now(),
+                    end: None,
+                });
+
+                self.timer_state = TimerState::Work;
+            }
+        }
         self.persist();
+    }
+
+    pub fn stop(&mut self) {
+        self.timer_state = TimerState::Done;
+        let mut can_persist = false;
+
+        let last_work = self.records.last_mut().unwrap();
+        if last_work.end.is_none() {
+            last_work.end = Some(Local::now());
+            can_persist = true;
+        };
+
+        let last_break = self.break_records.last_mut().unwrap();
+        if last_break.end.is_none() {
+            last_break.end = Some(Local::now());
+            can_persist = true;
+        };
+        
+        if can_persist {
+            self.persist();
+        }
     }
 
     pub fn reset_today(&mut self) {
@@ -76,6 +129,18 @@ impl Store {
     pub fn total_today_seconds(&self) -> i64 {
         let today = Local::now().day();
         self.records
+            .iter()
+            .filter(|r| r.start.day() == today)
+            .map(|r| {
+                let end = r.end.unwrap_or_else(|| Local::now());
+                let secs = (end - r.start).num_seconds();
+                if secs > 0 { secs } else { 0 }
+            })
+            .sum()
+    }
+    pub fn get_total_break_seconds(&self) -> i64 {
+        let today = Local::now().day();
+        self.break_records
             .iter()
             .filter(|r| r.start.day() == today)
             .map(|r| {
@@ -116,7 +181,13 @@ impl Default for Store {
                     end: None,
                 }
             ],
-            is_running: true,
+            break_records: vec![
+                Record {
+                    start: Local::now(),
+                    end: Some(Local::now()),
+                }
+            ],
+            timer_state: TimerState::Work,
         }
     }
 }
