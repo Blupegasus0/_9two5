@@ -29,7 +29,12 @@ impl eframe::App for App {
 
     fn update(&mut self, ctx: &egui::Context, _frame: &mut eframe::Frame) {
         egui::CentralPanel::default().show(ctx, |ui| {
-            let secs = self.store.total_today_seconds();
+            let timer_state = self.store.get_timer_state();
+            let secs = match timer_state {
+                TimerState::Break => self.store.get_total_break_seconds(),
+                _ => self.store.total_today_seconds(),
+
+            };
             let hours = secs / 3600;
             let minutes = (secs % 3600) / 60;
             let seconds = secs % 60;

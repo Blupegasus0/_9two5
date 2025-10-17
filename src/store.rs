@@ -13,6 +13,7 @@ struct Record {
 #[derive(Debug, Serialize, Deserialize)]
 pub struct Store {
     records: Vec<Record>,
+    break_records: Vec<Record>,
     timer_state: TimerState,
 }
 
@@ -60,26 +61,39 @@ impl Store {
         // if already running, break
         match self.get_timer_state() {
             TimerState::Work => {
+                // timer work stop
                 let last = self.records.last_mut().unwrap();
+                last.end = Some(Local::now());
+
+                // timer break start
+                self.break_records.push(Record {
+                    start: Local::now(),
+                    end: None,
+                });
 
                 self.timer_state = TimerState::Break;
-                last.end = Some(Local::now());
-                self.persist();
             },
             TimerState::Break => {
-                // stop break timer as well.
-                self.timer_state = TimerState::Work;
+                // timer work start
                 self.records.push(Record {
                     start: Local::now(),
                     end: None,
                 });
+
+                // timer break stop
+                let last = self.break_records.last_mut().unwrap();
+                last.end = Some(Local::now());
+
+                self.timer_state = TimerState::Work;
             },
             TimerState::Done => {
-                self.timer_state = TimerState::Work;
+                // timer work start
                 self.records.push(Record {
                     start: Local::now(),
                     end: None,
                 });
+
+                self.timer_state = TimerState::Work;
             }
         }
         self.persist();
@@ -104,6 +118,18 @@ impl Store {
     pub fn total_today_seconds(&self) -> i64 {
         let today = Local::now().day();
         self.records
+            .iter()
+            .filter(|r| r.start.day() == today)
+            .map(|r| {
+                let end = r.end.unwrap_or_else(|| Local::now());
+                let secs = (end - r.start).num_seconds();
+                if secs > 0 { secs } else { 0 }
+            })
+            .sum()
+    }
+    pub fn get_total_break_seconds(&self) -> i64 {
+        let today = Local::now().day();
+        self.break_records
             .iter()
             .filter(|r| r.start.day() == today)
             .map(|r| {
@@ -139,6 +165,12 @@ impl Default for Store {
     fn default() -> Self {
         Store {
             records: vec![
+                Record {
+                    start: Local::now(),
+                    end: None,
+                }
+            ],
+            break_records: vec![
                 Record {
                     start: Local::now(),
                     end: None,
