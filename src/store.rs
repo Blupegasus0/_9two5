@@ -101,18 +101,23 @@ impl Store {
 
     pub fn stop(&mut self) {
         self.timer_state = TimerState::Done;
+        let mut can_persist = false;
 
         let last_work = self.records.last_mut().unwrap();
         if last_work.end.is_none() {
             last_work.end = Some(Local::now());
-            self.persist();
+            can_persist = true;
         };
 
         let last_break = self.records.last_mut().unwrap();
         if last_break.end.is_none() {
             last_break.end = Some(Local::now());
-            self.persist();
+            can_persist = true;
         };
+        
+        if can_persist {
+            self.persist();
+        }
     }
 
     pub fn reset_today(&mut self) {
