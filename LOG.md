@@ -4,3 +4,4 @@
 - Pause visible timer after N hours (default 3hrs) with no interaction - keep counting in the background 
   and allow the user to continue or void the extra time ("Are you still watching" style).
 + Create desktop file on linux
++ Create self update script
