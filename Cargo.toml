@@ -12,5 +12,5 @@ directories = "5.0"    # find user config dir
 
 [package.metadata.bundle]
 name = "_9two5"
-identifier = "_9two5"
+identifier = "com.you._9two5"
 #icon = "assets/icon.icns"   # optional
