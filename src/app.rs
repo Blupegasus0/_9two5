@@ -65,6 +65,9 @@ impl eframe::App for App {
                 if timer_button.double_clicked() {
                     self.store.stop();
                 }
+                timer_button.context_menu(|menu_ui| {
+                        App::render_context_menu(self, menu_ui);
+                });
             }
 
             if self.ui_shown.menu {
@@ -94,6 +97,24 @@ impl eframe::App for App {
 
         // small refresh so running timer updates display
         ctx.request_repaint_after(std::time::Duration::from_millis(250));
+    }
+
+}
+
+impl App {
+    fn render_context_menu(&mut self, ui: &mut egui::Ui) {
+        if ui.button("Toggle").clicked() {
+            self.store.toggle();
+            ui.close_menu();
+        }
+        if ui.button("Stop").clicked() {
+            self.store.stop();
+            ui.close_menu();
+        }
+        if ui.button("Reset Today").clicked() {
+            self.store.reset_today();
+            ui.close_menu();
+        }
     }
 }
 

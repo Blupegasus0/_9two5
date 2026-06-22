@@ -122,7 +122,8 @@ impl Store {
 
     pub fn reset_today(&mut self) {
         let today = Local::now();
-        self.records.retain(|r| r.start != today);
+        self.records.retain(|r| r.start.day() != today.day());
+        self.break_records.retain(|r| r.start.day() != today.day());
         self.persist();
     }
 
